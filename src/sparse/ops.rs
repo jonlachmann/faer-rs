@@ -225,6 +225,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
             let lhs_val = SliceGroup::<LhsE>::new(lhs.values_of_col(j));
             let rhs_val = SliceGroup::<RhsE>::new(rhs.values_of_col(j));
 
+            let dst_col = dst.col_ptrs()[j].zx();
             let dst = dst.row_indices_of_col_raw(j);
             let rhs = rhs.row_indices_of_col_raw(j);
             let lhs = lhs.row_indices_of_col_raw(j);
@@ -239,7 +240,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
 
                 if dst[dst_pos] < Ord::min(lhs, rhs) {
                     dst_val.write(
-                        dst_pos,
+                        dst_pos + dst_col,
                         f(
                             dst_val.read(dst_pos),
                             unsafe { core::mem::zeroed() },
@@ -255,15 +256,17 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                 match lhs.cmp(&rhs) {
                     core::cmp::Ordering::Less => {
                         dst_val.write(
-                            dst_pos,
-                            f(dst_val.read(dst_pos), lhs_val.read(lhs_pos), unsafe {
-                                core::mem::zeroed()
-                            }),
+                            dst_pos + dst_col,
+                            f(
+                                dst_val.read(dst_pos),
+                                lhs_val.read(lhs_pos),
+                                unsafe { core::mem::zeroed() }
+                            ),
                         );
                     }
                     core::cmp::Ordering::Equal => {
                         dst_val.write(
-                            dst_pos,
+                            dst_pos + dst_col,
                             f(
                                 dst_val.read(dst_pos),
                                 lhs_val.read(lhs_pos),
@@ -273,7 +276,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                     }
                     core::cmp::Ordering::Greater => {
                         dst_val.write(
-                            dst_pos,
+                            dst_pos + dst_col,
                             f(
                                 dst_val.read(dst_pos),
                                 unsafe { core::mem::zeroed() },
@@ -291,7 +294,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                 let lhs = lhs[lhs_pos];
                 if dst[dst_pos] < lhs {
                     dst_val.write(
-                        dst_pos,
+                        dst_pos + dst_col,
                         f(
                             dst_val.read(dst_pos),
                             unsafe { core::mem::zeroed() },
@@ -302,7 +305,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                     continue;
                 }
                 dst_val.write(
-                    dst_pos,
+                    dst_pos + dst_col,
                     f(dst_val.read(dst_pos), lhs_val.read(lhs_pos), unsafe {
                         core::mem::zeroed()
                     }),
@@ -314,7 +317,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                 let rhs = rhs[rhs_pos];
                 if dst[dst_pos] < rhs {
                     dst_val.write(
-                        dst_pos,
+                        dst_pos + dst_col,
                         f(
                             dst_val.read(dst_pos),
                             unsafe { core::mem::zeroed() },
@@ -325,7 +328,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                     continue;
                 }
                 dst_val.write(
-                    dst_pos,
+                    dst_pos + dst_col,
                     f(
                         dst_val.read(dst_pos),
                         unsafe { core::mem::zeroed() },
@@ -339,7 +342,7 @@ pub fn ternary_op_assign_into<I: Index, E: Entity, LhsE: Entity, RhsE: Entity>(
                 let rhs = rhs[rhs_pos];
                 dst_pos += dst[dst_pos..].binary_search(&rhs).unwrap();
                 dst_val.write(
-                    dst_pos,
+                    dst_pos + dst_col,
                     f(
                         dst_val.read(dst_pos),
                         unsafe { core::mem::zeroed() },
